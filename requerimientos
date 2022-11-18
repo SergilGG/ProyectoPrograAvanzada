@@ -1,0 +1,10 @@
+Requerimientos:
+0 - Que sea multiplatadorma, el programa no debe estar amarrado a un único SO
+1 - El programa lea archivos en formato de texto plano CSV.
+2 - El archivo de origen debe ser dividido en subarchivos, por lo menos 4 veces el número de CPUS que detecte la JVM en cada arquitectura
+3 - El data set debe tener 5 millones de registros, 20 columnas, al menos
+4 - Realizar concurrentemente lo siguiente: 
+	4.1 Lectura: Sobre cada archivo generado, crear un pool de hilos que cada uno atienda a un archivo de forma concurrente
+	4.2 Escritura: Recurso compartido, todos los hilos deben ingresar a escribir los resultado de forma sincronizada. Se debe crear un subdirectorio local en la misma ruta del archivo de origen (si existe, no se deben borrar los archivos contenidos) con la nomenclatura: nombreOrigen filtered(AAAAMMDD HHMM).csv
+5 - Mostrar un mensaje donde indique que la tarea finalizó con éxito y el tiempo que tardó el procesamiento 
+
