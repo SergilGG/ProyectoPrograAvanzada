@@ -10,7 +10,7 @@ public class SplitFile {
     public static void main(String[] args) throws Exception
         {
             int CPUs = Runtime.getRuntime().availableProcessors();
-            RandomAccessFile raf = new RandomAccessFile("/home/aguirre/Posgrado/ProgramacionAvanzada/ProyectoPrograAvanzada/Data/JQRO/DatosConcatenados/2015_JQRO_minuto_contaminates_meteorologia.csv", "r");
+            RandomAccessFile raf = new RandomAccessFile("/home/aguirre/Posgrado/ProgramacionAvanzada/Data/JQRO/DatosConcatenados/2015_JQRO_minuto_contaminates_meteorologia.csv", "r");
             long numSplits = 3*CPUs;
             long sourceSize = raf.length();
             long bytesPerSplit = sourceSize/numSplits ;
@@ -18,7 +18,7 @@ public class SplitFile {
 
             int maxReadBufferSize = 8 * 1024; //8KB
             for(int destIx=1; destIx <= numSplits; destIx++) {
-                BufferedOutputStream bw = new BufferedOutputStream(new FileOutputStream("/home/aguirre/Posgrado/ProgramacionAvanzada/ProyectoPrograAvanzada/Data/JQRO/SplitData/split"+destIx + ".csv"));
+                BufferedOutputStream bw = new BufferedOutputStream(new FileOutputStream("/home/aguirre/Posgrado/ProgramacionAvanzada/Data/JQRO/SplitData/split"+destIx + ".csv"));
                 if(bytesPerSplit > maxReadBufferSize) {
                     long numReads = bytesPerSplit/maxReadBufferSize;
                     long numRemainingRead = bytesPerSplit % maxReadBufferSize;
@@ -50,7 +50,7 @@ public class SplitFile {
             char nextChar = raf.readChar();
             while (nextChar != '\n') {
               System.out.println("Busca salto de linea..: " + nextChar);
-              bw.write(buf);
+              bw.write(nextChar);
               nextChar = raf.readChar();
             }
            
