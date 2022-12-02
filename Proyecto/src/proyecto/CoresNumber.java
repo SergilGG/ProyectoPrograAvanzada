@@ -8,7 +8,7 @@ package proyecto;
  *
  * @author sergi
  */
-public class CoresNumer {
+public class CoresNumber {
         public static int getCores(){
         int CPUs = Runtime.getRuntime().availableProcessors();
         System.out.println(CPUs);

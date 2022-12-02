@@ -4,7 +4,7 @@
  */
 package proyecto;
 
-import static proyecto.CoresNumer.getCores;
+import static proyecto.CoresNumber.getCores;
 
 /**
  *
