@@ -4,14 +4,14 @@
  */
 package proyecto;
 
-import static proyecto.CoresNumer.getCores;
-
 /**
  *
  * @author sergi
  */
-public class testCores {
-        public static void main(String[] args) {
-        getCores();
+public class CoresNumber {
+        public static int getCores(){
+        int CPUs = Runtime.getRuntime().availableProcessors();
+        System.out.println(CPUs);
+            return CPUs;
     }
 }
