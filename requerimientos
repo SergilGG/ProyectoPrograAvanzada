@@ -8,3 +8,15 @@ Requerimientos:
 	4.2 Escritura: Recurso compartido, todos los hilos deben ingresar a escribir los resultado de forma sincronizada. Se debe crear un subdirectorio local en la misma ruta del archivo de origen (si existe, no se deben borrar los archivos contenidos) con la nomenclatura: nombreOrigen filtered(AAAAMMDD HHMM).csv
 5 - Mostrar un mensaje donde indique que la tarea finalizó con éxito y el tiempo que tardó el procesamiento 
 
+El proyecto debe hacer uso de los conceptos vistos en clase y cumplir con los
+siguientes requisitos:
+Empleo correcto de los pilares de la POO:
+	• Abstracci´on
+	• Encapsulamiento
+	• Herencia
+	• Polimorfismo
+Manejo de Excepciones.
+Manejo de archivos de texto plano, mediante I/O.
+Manejo de hilos implementando el patr´on Manager-Workers
+Se debe de poder hacer todo lo solicitado sin tener que modificar nada en codigo. Esta sera una aplicacion para usuario final.
+No se permite el uso de ninguna biblioteca o framework externo a las herramientas incluidas en el API del JDK 8. Esto incluye cualquier biblioteca para manejo de archivos o hilos, se debe realizar con lo visto en clase.

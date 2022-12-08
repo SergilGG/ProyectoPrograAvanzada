@@ -1,4 +1,5 @@
 
+import static proyecto.CoresNumer.getCores;
 import proyecto.Worker;
 
 
@@ -9,8 +10,8 @@ import proyecto.Worker;
 public class testWorker{
     public static void main(String[] args) {
         
-        String path_2 = "archivo_prueba";
-        String path = "Resultados.csv";
+        String path_2 = "/home/aguirre/Posgrado/ProyectoPrograAvanzada/DatosConcatenados/subFile_2_2015_JQRO_minuto_contaminates_meteorologia.csv";
+        String path = "/home/aguirre/Posgrado/ProyectoPrograAvanzada/DatosConcatenados/Resultados.csv";
         int[] columnas = {1,2,3,4};
         int idCondicion = 0;
         String condicion = "-02-";
