@@ -1,10 +1,8 @@
-/Proyecto/nbproject/private/
 /Proyecto/build/
 /Proyecto/dist/
 /Proyecto/Proyecto/build/
-/Proyecto/Proyecto/nbproject/private/
 
-.idea/
+.idea
 Proyecto/Proyecto.iml
 
 *.csv

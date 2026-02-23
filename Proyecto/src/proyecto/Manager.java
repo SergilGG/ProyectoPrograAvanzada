@@ -83,18 +83,21 @@ public class Manager{
             concurrencyEngine.submit(worker);
         }
 
+        //aisla los hilos de la basura del GC
+        long memoryUsageAfterSubmit = runtime.totalMemory() - runtime.freeMemory();
+        double engineMemoryFootprint = (memoryUsageAfterSubmit - memoryUsageBefore) / (1024.0 * 1024.0);
+
         //manejo de sincronizacion
         concurrencyEngine.shutdown(); //cerramos la recepcion de nuevas tareas
         boolean areFinished = concurrencyEngine.awaitTermination(2, TimeUnit.HOURS); //esperar a que todos finalicen
 
         long endConcurrent = System.currentTimeMillis();
-        long memoryUsageAfter = runtime.totalMemory() - runtime.freeMemory();
 
         //-------------------------------------------------------------------------------
         if (areFinished) {
             System.out.println("\n******* RESULTADOS DEL EXPERIMENTO ******");
             System.out.printf("Tiempo total de ejecución concurrente: %d ms\n", (endConcurrent - startConcurrent));
-            System.out.printf("Consumo estimado de memoria: %,.2f MB\n", (memoryUsageAfter - memoryUsageBefore) / (1024.0 * 1024.0));
+            System.out.printf("Consumo estimado de memoria (solo hilos): %,.2f MB\n", engineMemoryFootprint);
         } else {
             System.err.println("El procesamiento excedió el tiempo límite.");
         }
