@@ -1,76 +1,134 @@
-
 package proyecto;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
-import static proyecto.SplitFile2.Split;
-import java.time.*; // Este paquete contiene LocalDate, LocalTime y LocalDateTime.
-import java.time.format.*;  // Este paquete contiene DateTimeFormatter.
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
- *
- * @author aguirre
+ * Clase Manager
+ * Implementa un ExecutorService paraseleccionar entre hilos de plataforma o hilos virtuales (Project Loom).
+ * useVirtualThreads indica el tipo de arquitectura de concurrencia que se utiliza.
+ * El numTasks indica la cantidad de tareas que se crearan por experimento. Lo que equivale al no. de workers.
  */
-public class Manager {
-    
-    private Thread poolWorkers[];
+public class Manager{
 
-    public void FiltradoConcurrente(String path, String fileName, int[ ] selectedFields, int idCondition, String condition) throws InterruptedException {
-        
-        // Split the number of files into n*CPU's subfiles.
-       Date tiempoInicialSplit = new Date();
-       int finalNumberOfFiles = Split(path, fileName);
-       Date tiempoFinalSplit = new Date();
-       double tiempoSplit;
-       tiempoSplit = tiempoFinalSplit.getTime() - tiempoInicialSplit.getTime();
-       
-       //System.out.printf("\n Tiempo split: %,.6f ms ", tiempoSplit); 
-  
-       
-        // Make the subdirectory Resultados in the same path of source file 
-        String pathSubdirectoryResultados = path + File.separator + "Resultados" ;
-        File file = new File( pathSubdirectoryResultados );
-        file.mkdirs();
-        
-        //Create the result output file, this will be the resource shared by the threads.
-        String todayDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"));
+
+    public void concurrentFiltering(String path,String fileName, String outputhPath, int[] selectedFields, int conditionColumn, String condition, int numTasks, boolean useVirtualThreads) throws InterruptedException {
+
+        System.out.println("\n------ INICIANDO EXPERIMENTO MANAGER-WORKER -----");
+        System.out.println("Motor seleccionado: " + (useVirtualThreads ? "Hilos Virtuales (Loom)" : "Hilos de Plataforma"));
+        System.out.println("Número de tareas configuradas: " + numTasks);
+
+        //archivo de salida
+        String pathSubdirectoryResults = outputhPath + File.separator + "Resultados";
+        new File(pathSubdirectoryResults).mkdirs();
+
+        String todayDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String outputFile = fileName.substring(0, fileName.length()-4) + "_filtered(" + todayDate + ").csv";
-        String pathOutputFile = pathSubdirectoryResultados + File.separator + outputFile;
-        
-        try {
-           File fileResultados = new File( pathOutputFile);
-           fileResultados.createNewFile();
-           System.out.println("\nCreo el archivo de resultados vacíos: " +  fileResultados);
-        } catch(IOException e) {
-           System.out.println("\nNo pudo crear el archivo de resultados");
-        }        
+        String pathOutputFile = pathSubdirectoryResults + File.separator + outputFile;
 
-        // Create a pool of thread fixed as number of sub files
-        this.poolWorkers = new Thread[finalNumberOfFiles];
-        System.out.println("Creo " + finalNumberOfFiles + " hilos" );
-        
-         
-       
-        for (int i = 0; i < finalNumberOfFiles; i++) {
-           String pathSourceFile = path + File.separator + "subFile_" + Integer.toString(i+1) + "_" + fileName ;  
-           //System.out.println("\nCreo el trabajador " + i + "con file " + pathSourceFile  );
-            Worker worker = new Worker(i, pathOutputFile, pathSourceFile, selectedFields, idCondition, condition);
-            this.poolWorkers[i] = new Thread(worker);
-            this.poolWorkers[i].start();
-           /* try {
-                this.poolWorkers[i].join();
-            } catch (InterruptedException e) {
-                 System.out.println(e);
-            }*/  
+        try {
+            File fileResults = new File(pathOutputFile);
+            fileResults.createNewFile();
+        } catch(IOException e) {
+            System.err.println("Error al crear el archivo de resultados");
+            return;
         }
-        System.out.printf("\n Tiempo split: %,.6f ms ", tiempoSplit); 
-       
-        /*for (int i = 0; i < finalNumberOfFiles; i++) {
-            try {
-                this.poolWorkers[i].join();
-            } catch (InterruptedException e) {
-            
-        }   */   
+
+        //lectura en memoria y particion logica del dataset
+        //el metodo del proyecto de la materia creaba el no. de archivos = al no. de hilos obtenidos de getCores de la clase CoresNumber
+        //para este proyecto, se pide crear cantidades de 10k, 50k y 100k tareas/workers.
+        System.out.println("Leyendo archivo principal y creando " + numTasks + " lotes en memoria...");
+        long startSplit = System.currentTimeMillis();
+
+        //metodo auxiliar partitionFileInMemory. Dividimos el dataset original en conjuntos especificos almacenados en memoria directamente.
+        List<List<String>> taskBatches = partitionFileInMemory(path + File.separator + fileName, numTasks);
+
+        long endSplit = System.currentTimeMillis();
+        System.out.printf("Tiempo de partición lógica: %d ms\n", (endSplit - startSplit));
+
+        //medicion de RAM Inicial
+        Runtime runtime = Runtime.getRuntime();
+        runtime.gc(); //garbache colector
+        long memoryUsageBefore = runtime.totalMemory() - runtime.freeMemory();
+
+        //------------------------------------------------------------------------------------
+        //SELECCION DE TIPO DE CONCURRENCIA
+        //interfaz ExecutorService de java.util.concurrent
+        ExecutorService concurrencyEngine;
+        if (useVirtualThreads) {
+            //usamos hilos virtuales, complemante administrados por JVM
+            concurrencyEngine = Executors.newVirtualThreadPerTaskExecutor();
+        } else {
+            //usamos hilos fisicos
+            concurrencyEngine = Executors.newFixedThreadPool(CoresNumber.getCores());
+        }
+
+        //------------------------------------------------------------------------------------
+
+        System.out.println("Iniciando procesamiento concurrente...");
+        long startConcurrent = System.currentTimeMillis();
+
+        for (int i = 0; i < taskBatches.size(); i++) {
+            //pasamos el lote List<String> directamente al worker en lugar de una ruta / taskBatches.get(i)
+            Worker worker = new Worker(i, pathOutputFile, taskBatches.get(i), selectedFields, conditionColumn, condition);
+            concurrencyEngine.submit(worker);
+        }
+
+        //manejo de sincronizacion
+        concurrencyEngine.shutdown(); //cerramos la recepcion de nuevas tareas
+        boolean areFinished = concurrencyEngine.awaitTermination(2, TimeUnit.HOURS); //esperar a que todos finalicen
+
+        long endConcurrent = System.currentTimeMillis();
+        long memoryUsageAfter = runtime.totalMemory() - runtime.freeMemory();
+
+        //-------------------------------------------------------------------------------
+        if (areFinished) {
+            System.out.println("\n******* RESULTADOS DEL EXPERIMENTO ******");
+            System.out.printf("Tiempo total de ejecución concurrente: %d ms\n", (endConcurrent - startConcurrent));
+            System.out.printf("Consumo estimado de memoria: %,.2f MB\n", (memoryUsageAfter - memoryUsageBefore) / (1024.0 * 1024.0));
+        } else {
+            System.err.println("El procesamiento excedió el tiempo límite.");
+        }
+    }
+
+    /**
+     * Lee el CSV secuencialmente y reparte las líneas entre un número de listas equivalente al número de tareas usando un algoritmo Round-Robin.
+     */
+    private List<List<String>> partitionFileInMemory(String completePath, int numTasks) {
+
+        //lista de listas  = numTasks
+        List<List<String>> batches = new ArrayList<>(numTasks);
+
+        //creamos 'numTasks' listas vacias
+        for (int i = 0; i < numTasks; i++) {
+            batches.add(new ArrayList<>());
+        }
+
+        //BufferedReader evita saturar la RAM
+        try (BufferedReader reader = new BufferedReader(new FileReader(completePath))) {
+            String linea;
+            int contador = 0;
+
+            //DISTRIBUCIÓN ROUND-ROBIN
+            while ((linea = reader.readLine()) != null) {
+                //distribuimos las lineas en no. equitativo en las numTasks listas.
+                batches.get(contador % numTasks).add(linea);
+                contador++;
+            }
+        } catch (IOException e) {
+            System.err.println("Error leyendo el archivo fuente: " + e.getMessage());
+        }
+
+        //listas de datos llenas
+        return batches;
     }
 }
-
